@@ -322,14 +322,16 @@ function calculatePLData(strategy, params) {
     let range = maxPrice - minPrice;
     if (range === 0) range = S0 * 0.1; 
 
-    let startPrice = Math.max(0.01, minPrice - range * 0.35); 
+    let startPrice = Math.max(0, minPrice - range * 0.35); 
     let endPrice = maxPrice + range * 0.35; 
 
     let keyPointsSet = new Set();
+    keyPointsSet.add(0);
+
     let step = parseFloat(((endPrice - startPrice) / 300).toFixed(2));
     if(step <= 0.01) step = 0.01;
     for (let s = startPrice; s <= endPrice; s += step) {
-        keyPointsSet.add(parseFloat(s.toFixed(2)));
+        if (s > 0) keyPointsSet.add(parseFloat(s.toFixed(2)));
     }
     crucialPoints.forEach(p => keyPointsSet.add(parseFloat(p.toFixed(2))));
 
@@ -338,20 +340,18 @@ function calculatePLData(strategy, params) {
         res.push({ stockPrice: s, profitAndLoss: getPL(s) });
     }
     
-    return { data: res, netPremium: net, netPremiumFormula: nF, maxProfit: dispMP, maxLoss: dispML, maxProfitFormula: mPF, maxLossFormula: mLF, bepFormula: bF, breakeven: bR, S0, IV, DTE, strategy, sDiffText: sDiff, sDiffFormula: sdF, currentPLValue: cPV.toFixed(2), currentPLFormula: cPF };
+    return { data: res, netPremium: net, netPremiumFormula: nF, maxProfit: dispMP, maxLoss: dispML, maxProfitFormula: mPF, maxLossFormula: mLF, bepFormula: bF, breakeven: bR, S0, IV, DTE, strategy, sDiffText: sDiff, sDiffFormula: sdF, currentPLValue: cPV.toFixed(2), currentPLFormula: cPF, xMinView: startPrice, xMaxView: endPrice };
 }
 
 function generateLogicParams(strategy, S0, IV, DTE) {
     const p = {}; let safetyCheck = false;
     p.IV = IV; p.DTE = DTE; 
     let em = S0 * (IV / 100) * Math.sqrt(DTE / 365);
-    // 強制將最小 EM 綁定標的股價比例，避免低價股引發極端邊界扭曲
     if (em < S0 * 0.02) em = S0 * 0.02; 
 
-    // 建立一套基於 S0 比例的浮動標準尺規
-    const w1 = S0 * 0.02; // 小寬距
-    const w2 = S0 * 0.05; // 中寬距
-    const pBase = S0 * 0.01; // 基準權利金比例
+    const w1 = S0 * 0.02; 
+    const w2 = S0 * 0.05; 
+    const pBase = S0 * 0.01; 
     
     while (!safetyCheck) {
         switch (strategy) {
@@ -436,7 +436,6 @@ function generateLogicParams(strategy, S0, IV, DTE) {
                 p.P3 = roundK(rand(0.05, p.P1 - 2*p.P2 - 0.05)); 
                 break;
             case 'PutButterfly':
-                // 【精準修復】正確還原 Put 權利金 P1 < P2 < P3 邏輯
                 const wPB = roundK(rand(w2, w2*2)); 
                 p.K2 = roundK(S0 + rand(-w1*0.5, w1*0.5)); 
                 p.K1 = roundK(p.K2 - wPB); p.K3 = roundK(p.K2 + wPB); 
@@ -467,7 +466,6 @@ function generateLogicParams(strategy, S0, IV, DTE) {
         if (validSpread && positiveStrikes) { safetyCheck = true; }
     }
     
-    // 二次強制防護：如果在隨機運算中不小心踩到底線，手動將其拉回安全區域
     if (strategy === 'JadeLizard' && p.K1 - (p.P1 + p.P2 - p.P3) <= 0) p.K1 = roundK(p.P1 + p.P2 - p.P3 + S0*0.1);
     if (strategy === 'Strangle' && p.K1 - (p.P1 + p.P2) <= 0) p.K1 = roundK(p.P1 + p.P2 + S0*0.1);
     if (strategy === 'ShortPut' && p.K1 - p.P1 <= 0) p.K1 = roundK(p.P1 + S0*0.1);
@@ -489,6 +487,22 @@ function generateLogicParams(strategy, S0, IV, DTE) {
     }
 
     return { params: p, logicText: logicText };
+}
+
+function handleChartRefresh() {
+    const m = document.getElementById('priceMode').value;
+    if (m === 'random') {
+        randomRefresh();
+    } else {
+        const S0 = parseFloat(document.getElementById('S0').value) || 0;
+        const IV = parseFloat(document.getElementById('IV').value) || 0;
+        const DTE = parseFloat(document.getElementById('DTE').value) || 0;
+        if (S0 > 0 && IV > 0 && DTE > 0) {
+            applySmartAdjust();
+        } else {
+            alert("請先輸入標的現價、IV 與到期天數！");
+        }
+    }
 }
 
 function validateStrategyAndRenderCoach(analysis) {
@@ -544,8 +558,16 @@ function validateStrategyAndRenderCoach(analysis) {
         }
     });
 
-    if (isAllZero || em === 0) return { status: 'empty' };
-    if (!hasAnyStrike || hasZeroStrike) return { status: 'incomplete', lower1SD, upper1SD };
+    const chartBtn = document.getElementById('chartRefreshBtn');
+
+    if (isAllZero || em === 0) {
+        if (m === 'manual' && chartBtn) chartBtn.style.display = 'none';
+        return { status: 'empty' };
+    }
+    if (!hasAnyStrike || hasZeroStrike) {
+        if (m === 'manual' && chartBtn) chartBtn.style.display = 'block';
+        return { status: 'incomplete', lower1SD, upper1SD };
+    }
 
     const addError = (fields, msg) => {
         errors.push(msg);
@@ -599,7 +621,6 @@ function validateStrategyAndRenderCoach(analysis) {
         case 'Strangle':
             if (!(K1 < S0 && S0 < K2)) addError(['K1', 'K2'], `賣出腳 (K1, K2) 必須分居現價 (S0) 兩側 (OTM)。`);
             if (P1 <= 0 || P2 <= 0) addError(['P1', 'P2'], `必須收取權利金。`);
-            // 【精準攔截】防止 S0 極低時，產生左側沒有最大虧損的無限獲利 Bug
             if (K1 - netPremium <= 0) addError(['K1', 'P1', 'P2'], `極端防護錯誤：您設定的 K1 過低或權利金過高，導致下檔風險消失呈現獲利狀態，這在真實市場不成立，請提高 K1 或減少權利金。`);
             if (K1 > lower1SD || K2 < upper1SD) warnings.push(`雙向裸賣風險極高，您的部位太貼近現價 (1 SD 暴風圈內)。`);
             break;
@@ -614,7 +635,6 @@ function validateStrategyAndRenderCoach(analysis) {
         case 'PutButterfly':
             if (!(K1 < K2 && K2 < K3)) addError(['K1', 'K2', 'K3'], `履約價順序錯誤：必須為 K1 < K2 < K3。`);
             if (Math.abs((K2-K1) - (K3-K2)) > 0.05) addError(['K1', 'K2', 'K3'], `左右兩翼必須完全等寬。`);
-            // 【精準攔截】強制檢查 Put 的正向遞增邏輯
             if (!(P1 < P2 && P2 < P3)) addError(['P1', 'P2', 'P3'], `Put 權利金應符合 P1 < P2 < P3 (越深入價內的 Put 權利金必須越貴)。`);
             if (netPremium >= 0) addError(['P1', 'P2', 'P3'], `此策略應為淨支出 (Debit)。`);
             if (Math.abs(netPremium) >= (K2 - K1)) addError(['P1', 'P2', 'P3'], `真實市場防護：淨支出不得大於或等於單側翼展寬度。`);
@@ -624,7 +644,6 @@ function validateStrategyAndRenderCoach(analysis) {
             if (!(K1 < S0 && S0 < K2 && K2 < K3)) addError(['K1', 'K2', 'K3'], `履約價必須符合 K1 < S0 < K2 < K3 (全價外)。`);
             if (P1 <= 0 || P2 <= P3) addError(['P1', 'P2', 'P3'], `權利金邏輯錯誤，請確保 P1 > 0 且 P2 > P3。`);
             if (netPremium < (K3 - K2)) addError(['P1', 'P2', 'P3', 'K2', 'K3'], `嚴重風險：總淨收入必須 ≥ (K3-K2) 寬度，否則上漲會虧損。`);
-            // 【精準攔截】防止 S0 極低時，產生左側沒有最大虧損的無限獲利 Bug
             if (K1 - netPremium <= 0) addError(['K1', 'P1', 'P2', 'P3'], `極端防護錯誤：您設定的 K1 過低或淨收入過高，導致下檔風險完全消失。這在真實市場中不合理，請提高 K1 或減少權利金。`);
             if (K1 > lower1SD) warnings.push(`賣出 Put (K1) 防禦空間過小 (在 1 SD 內)。`);
             break;
@@ -674,8 +693,16 @@ function validateStrategyAndRenderCoach(analysis) {
         });
     }
 
-    if (errors.length > 0) return { status: 'error', errors };
-    if (warnings.length > 0) return { status: 'warning', warnings };
+    if (errors.length > 0) {
+        if (m === 'manual' && chartBtn) chartBtn.style.display = 'block';
+        return { status: 'error', errors };
+    }
+    if (warnings.length > 0) {
+        if (m === 'manual' && chartBtn) chartBtn.style.display = 'block';
+        return { status: 'warning', warnings };
+    }
+    
+    if (m === 'manual' && chartBtn) chartBtn.style.display = 'block';
     return { status: 'safe' };
 }
 
@@ -879,12 +906,18 @@ function analyzeSpread() {
             if (justSmartAdjusted) {
                 coachContainer.innerHTML = `
                 <div class="smart-adjust-success">✅ 智能調整完畢！<br>已為您配置符合標準圖形且推移至安全邊界的實戰參數。<br><br>💡 ${strategyConfigs[strategy].adjustHint || "請觀察圖表與數值變化，這是在真實市場中提高勝率的標準配置。"}</div>
-                <div class="action-buttons"><button onclick="clearAllInputs()" class="clear-btn" style="flex: 1;">🧹 清除重置</button></div>`;
+                <div class="action-buttons">
+                    <button onclick="clearAllInputs()" class="clear-btn" style="flex: 1;">🧹 清除重置</button>
+                    <button onclick="applySmartAdjust()" class="smart-adjust-btn" style="flex: 1; background: linear-gradient(135deg, #17a2b8, #117a8b);">🎲 換一組參數</button>
+                </div>`;
                 justSmartAdjusted = false;
             } else {
                 coachContainer.innerHTML = `
                 <div class="smart-adjust-success">✅ 教練檢測通過！<br>您的配置非常優秀！參數完全符合策略邏輯與防套利風控，這能為您確保高勝率的基礎。</div>
-                <div class="action-buttons"><button onclick="clearAllInputs()" class="clear-btn" style="flex: 1;">🧹 清除重置</button></div>`;
+                <div class="action-buttons">
+                    <button onclick="clearAllInputs()" class="clear-btn" style="flex: 1;">🧹 清除重置</button>
+                    <button onclick="applySmartAdjust()" class="smart-adjust-btn" style="flex: 1; background: linear-gradient(135deg, #17a2b8, #117a8b);">🎲 換一組參數</button>
+                </div>`;
             }
         }
     } else if (m === 'random') {
@@ -1068,7 +1101,9 @@ function drawChart(analysis) {
             }, 
             scales: { 
                 x: { 
-                    type: 'linear', 
+                    type: 'linear',
+                    min: analysis.xMinView, 
+                    max: analysis.xMaxView,
                     grid: { color: '#333' }, 
                     title: { display: true, text: '價格 ($)', color: '#ccc' }, 
                     ticks: { 
@@ -1292,7 +1327,15 @@ function togglePriceMode() {
     document.getElementById('randomRefreshBtn').style.display = (m === 'random') ? 'block' : 'none'; 
     
     const chartBtn = document.getElementById('chartRefreshBtn');
-    if (chartBtn) chartBtn.style.display = (m === 'random') ? 'block' : 'none';
+    if (chartBtn) {
+        if (m === 'random') {
+            chartBtn.style.display = 'block';
+            chartBtn.innerHTML = '🎲 刷新參數';
+        } else {
+            chartBtn.style.display = 'none';
+            chartBtn.innerHTML = '🎲 換一組參數';
+        }
+    }
     
     if (m === 'random') {
         randomRefresh(); 
