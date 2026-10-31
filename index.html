@@ -1,19 +1,15 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <title>Options Nerd</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Options Nerd</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 </head>
 <body>
-
-<!-- codepen HTML 程式碼貼過來下方 -->
-
 <div class="container">
     <div class="header-section">
         <h2 class="title-area">Options Nerd</h2>
@@ -82,6 +78,8 @@
             <button id="copyStrategyBtn" onclick="copyStrategySummary()" class="copy-btn">📋 複製策略摘要</button>
             
             <h3>策略分析與詳細推導</h3>
+            <div id="strategySnapshot" class="strategy-snapshot" aria-live="polite"></div>
+            <p class="unit-note">以下圖表與所有損益數字均為<strong>到期日損益</strong>，並非即時市值；數字均以<strong>每股</strong>表示。一口標準選擇權通常為 ×100 股，未包含交易成本、保證金、提前指派與流動性風險。</p>
             
             <div class="data-row">
                 <p>安全邊際 (Margin of Safety): <span id="marginOfSafetyValue" style="color: #ffc107;">—</span></p>
@@ -103,7 +101,7 @@
                 <p id="netPremiumFormulaDisplay" class="formula-text">—</p>
             </div>
             <div class="data-row">
-                <p>現有股價損益 (S0 P/L): <span id="currentPLDisplay" style="color: #00ffff;">—</span></p>
+                <p>到期時 S = S0 的損益: <span id="currentPLDisplay" style="color: #00ffff;">—</span></p>
                 <p id="currentPLFormulaDisplay" class="formula-text">—</p>
             </div>
             <div class="data-row">
@@ -125,7 +123,7 @@
                 <label class="legend-item">
                     <input type="checkbox" id="ticS0" checked onchange="updateChartVisibility()">
                     <span class="dot" style="background-color: #ffffff; width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 1px solid #fff;"></span> 
-                    現股 S0: $<span id="legS0Value">—</span> | 損益: $<span id="legS0PLValue">—</span>
+                    到期結算價 S=S0: $<span id="legS0Value">—</span> | 到期損益: $<span id="legS0PLValue">—</span>
                 </label>
                 <label class="legend-item">
                     <input type="checkbox" id="ticBEP" checked onchange="updateChartVisibility()">
@@ -169,9 +167,6 @@
         <div id="greeksModalBody" style="margin-top: 20px; line-height: 1.6; color: #ccc;"></div>
     </div>
 </div>
-
-<!-- codepen HTML 程式碼到這行上方就好 -->
-
 <script src="script.js"></script>
 </body>
 </html>
