@@ -137,3 +137,66 @@ p, span, h2, h3, select, input { font-style: normal !important; font-weight: nor
 .container.force-horizontal {
     min-width: 1100px;
 }
+
+/* 讀圖優先：不改變既有欄位與版面流程，只補上重點資訊層 */
+.strategy-snapshot { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 12px; }
+.snapshot-item { min-width: 0; background: #202020; border: 1px solid #444; border-radius: 6px; padding: 10px; }
+.snapshot-label { display: block; color: #aaa; font-size: 0.75em; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.snapshot-value { display: block; font-size: 0.95em; font-weight: 600 !important; overflow-wrap: anywhere; }
+.snapshot-safe { color: #ffc107; }
+.snapshot-profit { color: #28a745; }
+.snapshot-loss { color: #ff6b6b; }
+.snapshot-neutral { color: #55c7e9; }
+.unit-note { margin: 0 0 16px; padding: 9px 11px; background: rgba(255,255,255,0.04); border-left: 3px solid #666; color: #aaa; font-size: 0.78em; line-height: 1.5; }
+.unit-note strong { color: #ddd; }
+@media (max-width: 992px) { .strategy-snapshot { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 380px) { .strategy-snapshot { grid-template-columns: 1fr; } }
+
+/* 初學者先看市場情境、可能報酬與核心風險；窄螢幕保持單欄閱讀 */
+.market-context-card {
+  margin: 0 0 14px;
+  padding: 12px;
+  border: 1px solid #3c5a6b;
+  border-left: 4px solid #17a2b8;
+  border-radius: 6px;
+  background: rgba(23, 162, 184, 0.10);
+  color: #e0e0e0;
+  font-size: 0.9em;
+  line-height: 1.55;
+}
+.market-context-card p { margin: 6px 0 0; }
+.market-context-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #e9f7ff;
+  font-weight: 600;
+}
+.risk-tier {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(23, 162, 184, .24);
+  color: #8be4ff;
+  font-size: .78em;
+}
+.market-context-card.advanced {
+  border-left-color: #ffc107;
+  background: rgba(255, 193, 7, .08);
+}
+.market-context-card.advanced .risk-tier {
+  background: rgba(255, 193, 7, .18);
+  color: #ffd86b;
+}
+.market-context-card.high {
+  border-left-color: #dc3545;
+  background: rgba(220, 53, 69, .12);
+}
+.market-context-card.high .risk-tier {
+  background: rgba(220, 53, 69, .20);
+  color: #ffb3bb;
+}
+@media (max-width: 380px) {
+  .market-context-title { align-items: flex-start; flex-direction: column; }
+}
