@@ -222,6 +222,9 @@ function calculatePLData(strategy, params) {
     const vLC4 = S0 > K4 ? parseFloat((S0 - K4).toFixed(2)) : 0;
 
     const formatSignedNum = (num) => num >= 0 ? `+ ${num.toFixed(2)}` : `- ${Math.abs(num).toFixed(2)}`;
+    const fmt = (value) => Number(value).toFixed(2);
+    const expandSubtract = (a, b, c) => `(${fmt(a)} - ${fmt(b)}) - ${fmt(c)} = ${fmt(a - b)} - ${fmt(c)} = ${fmt(a - b - c)}`;
+    const expandDifferenceOfDifferences = (a, b, c, d, e) => `(${fmt(a)} - ${fmt(b)}) - (${fmt(c)} - ${fmt(d)}) - ${fmt(e)} = ${fmt(a - b)} - ${fmt(c - d)} - ${fmt(e)} = ${fmt((a - b) - (c - d))} - ${fmt(e)} = ${fmt((a - b) - (c - d) - e)}`;
 
     switch (strategy) {
         case 'ShortPut':
@@ -236,19 +239,19 @@ function calculatePLData(strategy, params) {
             bR = (K1 - P1).toFixed(2); bF = `計算過程：${K1.toFixed(2)} - ${P1.toFixed(2)} = ${bR}`; sDiff = "單腿"; sdF = "說明：無兩腿價差。"; 
             cPF = `計算過程：P1 - Max(0, K1 - S0) = ${P1.toFixed(2)} - ${vSP1.toFixed(2)} = ${cPV.toFixed(2)}`; break;
         case 'BullPutSpread':
-            net = P2 - P1; nF = `計算過程：${P2.toFixed(2)} - ${P1.toFixed(2)} = ${net.toFixed(2)}`; dispMP = `${net.toFixed(2)} (當股價在 ${K2.toFixed(2)} 之上)`; mPF = `計算過程：淨收入 = 獲利上限`; dispML = `${((K2 - K1) - net).toFixed(2)} (當股價在 ${K1.toFixed(2)} 之下)`; mLF = `計算過程：(K2 - K1) - 淨收入 = (${K2.toFixed(2)} - ${K1.toFixed(2)}) - ${net.toFixed(2)} = ${((K2 - K1) - net).toFixed(2)}`; bR = (K2 - net).toFixed(2); bF = `計算過程：${K2.toFixed(2)} - ${net.toFixed(2)} = ${bR}`; sDiff = (K2 - K1).toFixed(2); sdF = `計算過程：${K2.toFixed(2)} - ${K1.toFixed(2)} = ${sDiff}`; 
+            net = P2 - P1; nF = `計算過程：${P2.toFixed(2)} - ${P1.toFixed(2)} = ${net.toFixed(2)}`; dispMP = `${net.toFixed(2)} (當股價在 ${K2.toFixed(2)} 之上)`; mPF = `計算過程：淨收入 = 獲利上限`; dispML = `${((K2 - K1) - net).toFixed(2)} (當股價在 ${K1.toFixed(2)} 之下)`; mLF = `計算過程：履約價差 - 淨收入 = ${expandSubtract(K2, K1, net)}`; bR = (K2 - net).toFixed(2); bF = `計算過程：${K2.toFixed(2)} - ${net.toFixed(2)} = ${bR}`; sDiff = (K2 - K1).toFixed(2); sdF = `計算過程：${K2.toFixed(2)} - ${K1.toFixed(2)} = ${sDiff}`; 
             const bps1 = parseFloat((vLP1 - P1).toFixed(2)); const bps2 = parseFloat((P2 - vSP2).toFixed(2));
             cPF = `計算過程：(Max(0, K1 - S0) - P1) + (P2 - Max(0, K2 - S0)) = (${vLP1.toFixed(2)} - ${P1.toFixed(2)}) + (${P2.toFixed(2)} - ${vSP2.toFixed(2)}) = ${bps1.toFixed(2)} ${formatSignedNum(bps2)} = ${cPV.toFixed(2)}`; break;
         case 'BullCallSpread':
-            net = - (P1 - P2); const bcl = P1 - P2; nF = `計算過程：- (${P1.toFixed(2)} - ${P2.toFixed(2)}) = - ${bcl.toFixed(2)}`; dispML = `${bcl.toFixed(2)} (當股價在 ${K1.toFixed(2)} 之下)`; mLF = `計算過程：淨支出 = 最大損失`; dispMP = `${((K2 - K1) - bcl).toFixed(2)} (當股價在 ${K2.toFixed(2)} 之上)`; mPF = `計算過程：(K2 - K1) - 淨支出 = (${K2.toFixed(2)} - ${K1.toFixed(2)}) - ${bcl.toFixed(2)} = ${((K2 - K1) - bcl).toFixed(2)}`; bR = (K1 + bcl).toFixed(2); bF = `計算過程：${K1.toFixed(2)} + ${bcl.toFixed(2)} = ${bR}`; sDiff = (K2 - K1).toFixed(2); sdF = `計算過程：${K2.toFixed(2)} - ${K1.toFixed(2)} = ${sDiff}`; 
+            net = - (P1 - P2); const bcl = P1 - P2; nF = `計算過程：- (${P1.toFixed(2)} - ${P2.toFixed(2)}) = - ${bcl.toFixed(2)}`; dispML = `${bcl.toFixed(2)} (當股價在 ${K1.toFixed(2)} 之下)`; mLF = `計算過程：淨支出 = 最大損失`; dispMP = `${((K2 - K1) - bcl).toFixed(2)} (當股價在 ${K2.toFixed(2)} 之上)`; mPF = `計算過程：履約價差 - 淨支出 = ${expandSubtract(K2, K1, bcl)}`; bR = (K1 + bcl).toFixed(2); bF = `計算過程：${K1.toFixed(2)} + ${bcl.toFixed(2)} = ${bR}`; sDiff = (K2 - K1).toFixed(2); sdF = `計算過程：${K2.toFixed(2)} - ${K1.toFixed(2)} = ${sDiff}`; 
             const bcs1 = parseFloat((vLC1 - P1).toFixed(2)); const bcs2 = parseFloat((P2 - vSC2).toFixed(2));
             cPF = `計算過程：(Max(0, S0 - K1) - P1) + (P2 - Max(0, S0 - K2)) = (${vLC1.toFixed(2)} - ${P1.toFixed(2)}) + (${P2.toFixed(2)} - ${vSC2.toFixed(2)}) = ${bcs1.toFixed(2)} ${formatSignedNum(bcs2)} = ${cPV.toFixed(2)}`; break;
         case 'BearCallSpread':
-            net = P1 - P2; nF = `計算過程：${P1.toFixed(2)} - ${P2.toFixed(2)} = ${net.toFixed(2)}`; dispMP = `${net.toFixed(2)} (當股價在 ${K1.toFixed(2)} 之下)`; mPF = `計算過程：淨收入 = 獲利上限`; dispML = `${((K2 - K1) - net).toFixed(2)} (當股價在 ${K2.toFixed(2)} 之上)`; mLF = `計算過程：(K2 - K1) - 淨收入 = (${K2.toFixed(2)} - ${K1.toFixed(2)}) - ${net.toFixed(2)} = ${((K2 - K1) - net).toFixed(2)}`; bR = (K1 + net).toFixed(2); bF = `計算過程：${K1.toFixed(2)} + ${net.toFixed(2)} = ${bR}`; sDiff = (K2 - K1).toFixed(2); sdF = `計算過程：${K2.toFixed(2)} - ${K1.toFixed(2)} = ${sDiff}`; 
+            net = P1 - P2; nF = `計算過程：${P1.toFixed(2)} - ${P2.toFixed(2)} = ${net.toFixed(2)}`; dispMP = `${net.toFixed(2)} (當股價在 ${K1.toFixed(2)} 之下)`; mPF = `計算過程：淨收入 = 獲利上限`; dispML = `${((K2 - K1) - net).toFixed(2)} (當股價在 ${K2.toFixed(2)} 之上)`; mLF = `計算過程：履約價差 - 淨收入 = ${expandSubtract(K2, K1, net)}`; bR = (K1 + net).toFixed(2); bF = `計算過程：${K1.toFixed(2)} + ${net.toFixed(2)} = ${bR}`; sDiff = (K2 - K1).toFixed(2); sdF = `計算過程：${K2.toFixed(2)} - ${K1.toFixed(2)} = ${sDiff}`; 
             const bcc1 = parseFloat((P1 - vSC1).toFixed(2)); const bcc2 = parseFloat((vLC2 - P2).toFixed(2));
             cPF = `計算過程：(P1 - Max(0, S0 - K1)) + (Max(0, S0 - K2) - P2) = (${P1.toFixed(2)} - ${vSC1.toFixed(2)}) + (${vLC2.toFixed(2)} - ${P2.toFixed(2)}) = ${bcc1.toFixed(2)} ${formatSignedNum(bcc2)} = ${cPV.toFixed(2)}`; break;
         case 'BearPutSpread':
-            net = - (P2 - P1); const bpc = P2 - P1; nF = `計算過程：- (${P2.toFixed(2)} - ${P1.toFixed(2)}) = - ${bpc.toFixed(2)}`; dispML = `${bpc.toFixed(2)} (當股價在 ${K2.toFixed(2)} 之上)`; mLF = `計算過程：淨支出 = 最大損失`; dispMP = `${((K2 - K1) - bpc).toFixed(2)} (當股價在 ${K1.toFixed(2)} 之下)`; mPF = `計算過程：(K2 - K1) - 淨支出 = (${K2.toFixed(2)} - ${K1.toFixed(2)}) - ${bpc.toFixed(2)} = ${((K2 - K1) - bpc).toFixed(2)}`; bR = (K2 - bpc).toFixed(2); bF = `計算過程：${K2.toFixed(2)} - ${bpc.toFixed(2)} = ${bR}`; sDiff = (K2 - K1).toFixed(2); sdF = `計算過程：${K2.toFixed(2)} - ${K1.toFixed(2)} = ${sDiff}`; 
+            net = - (P2 - P1); const bpc = P2 - P1; nF = `計算過程：- (${P2.toFixed(2)} - ${P1.toFixed(2)}) = - ${bpc.toFixed(2)}`; dispML = `${bpc.toFixed(2)} (當股價在 ${K2.toFixed(2)} 之上)`; mLF = `計算過程：淨支出 = 最大損失`; dispMP = `${((K2 - K1) - bpc).toFixed(2)} (當股價在 ${K1.toFixed(2)} 之下)`; mPF = `計算過程：履約價差 - 淨支出 = ${expandSubtract(K2, K1, bpc)}`; bR = (K2 - bpc).toFixed(2); bF = `計算過程：${K2.toFixed(2)} - ${bpc.toFixed(2)} = ${bR}`; sDiff = (K2 - K1).toFixed(2); sdF = `計算過程：${K2.toFixed(2)} - ${K1.toFixed(2)} = ${sDiff}`; 
             const bpc1 = parseFloat((P1 - vSP1).toFixed(2)); const bpc2 = parseFloat((vLP2 - P2).toFixed(2));
             cPF = `計算過程：(P1 - Max(0, K1 - S0)) + (Max(0, K2 - S0) - P2) = (${P1.toFixed(2)} - ${vSP1.toFixed(2)}) + (${vLP2.toFixed(2)} - ${P2.toFixed(2)}) = ${bpc1.toFixed(2)} ${formatSignedNum(bpc2)} = ${cPV.toFixed(2)}`; break;
         case 'IronCondor':
@@ -264,11 +267,11 @@ function calculatePLData(strategy, params) {
             const stp1 = parseFloat((P1 - vSP1).toFixed(2)); const stp2 = parseFloat((P2 - vSC2).toFixed(2));
             cPF = `計算過程：(P1 - Max(0, K1 - S0)) + (P2 - Max(0, S0 - K2)) = (${P1.toFixed(2)} - ${vSP1.toFixed(2)}) + (${P2.toFixed(2)} - ${vSC2.toFixed(2)}) = ${stp1.toFixed(2)} ${formatSignedNum(stp2)} = ${cPV.toFixed(2)}`; break;
         case 'CallButterfly':
-            net = - (P1 + P3 - 2 * P2); const cbf_debit = P1 + P3 - 2 * P2; nF = `計算過程：- (${P1.toFixed(2)} + ${P3.toFixed(2)} - 2 * ${P2.toFixed(2)}) = - ${cbf_debit.toFixed(2)}`; dispML = `${cbf_debit.toFixed(2)} (當股價在 ${K1.toFixed(2)} 之下或 ${K3.toFixed(2)} 之上)`; mLF = `計算過程：淨支出 = 最大損失`; dispMP = `${((K2 - K1) - cbf_debit).toFixed(2)} (當股價等於 ${K2.toFixed(2)})`; mPF = `計算過程：(${K2.toFixed(2)} - ${K1.toFixed(2)}) - ${cbf_debit.toFixed(2)} = ${((K2 - K1) - cbf_debit).toFixed(2)}`; bR = `${(K1 + cbf_debit).toFixed(2)} / ${(K3 - cbf_debit).toFixed(2)}`; bF = `計算過程：L:K1+Net | H:K3-Net`; sDiff = (K2 - K1).toFixed(2); sdF = `計算過程：單側翼展 ${K2.toFixed(2)} - ${K1.toFixed(2)} = ${sDiff}`; 
+            net = - (P1 + P3 - 2 * P2); const cbf_debit = P1 + P3 - 2 * P2; nF = `計算過程：- (${P1.toFixed(2)} + ${P3.toFixed(2)} - 2 * ${P2.toFixed(2)}) = - ${cbf_debit.toFixed(2)}`; dispML = `${cbf_debit.toFixed(2)} (當股價在 ${K1.toFixed(2)} 之下或 ${K3.toFixed(2)} 之上)`; mLF = `計算過程：淨支出 = 最大損失`; dispMP = `${((K2 - K1) - cbf_debit).toFixed(2)} (當股價等於 ${K2.toFixed(2)})`; mPF = `計算過程：單側翼展 - 淨支出 = ${expandSubtract(K2, K1, cbf_debit)}`; bR = `${(K1 + cbf_debit).toFixed(2)} / ${(K3 - cbf_debit).toFixed(2)}`; bF = `計算過程：L:K1+Net | H:K3-Net`; sDiff = (K2 - K1).toFixed(2); sdF = `計算過程：單側翼展 ${K2.toFixed(2)} - ${K1.toFixed(2)} = ${sDiff}`; 
             const cbfp1 = parseFloat((vLC1 - P1).toFixed(2)); const cbfp2 = parseFloat((2 * (P2 - vSC2)).toFixed(2)); const cbfp3 = parseFloat((vLC3 - P3).toFixed(2));
             cPF = `計算過程：(Max(0, S0 - K1) - P1) + 2 * (P2 - Max(0, S0 - K2)) + (Max(0, S0 - K3) - P3) = (${vLC1.toFixed(2)} - ${P1.toFixed(2)}) + 2 * (${P2.toFixed(2)} - ${vSC2.toFixed(2)}) + (${vLC3.toFixed(2)} - ${P3.toFixed(2)}) = ${cbfp1.toFixed(2)} ${formatSignedNum(cbfp2)} ${formatSignedNum(cbfp3)} = ${cPV.toFixed(2)}`; break;
         case 'PutButterfly':
-            net = - (P1 + P3 - 2 * P2); const pbf_debit = P1 + P3 - 2 * P2; nF = `計算過程：- (${P1.toFixed(2)} + ${P3.toFixed(2)} - 2 * ${P2.toFixed(2)}) = - ${pbf_debit.toFixed(2)}`; dispML = `${pbf_debit.toFixed(2)} (當股價在 ${K1.toFixed(2)} 之下或 ${K3.toFixed(2)} 之上)`; mLF = `計算過程：淨支出 = 最大損失`; dispMP = `${((K2 - K1) - pbf_debit).toFixed(2)} (當股價等於 ${K2.toFixed(2)})`; mPF = `計算過程：(${K2.toFixed(2)} - ${K1.toFixed(2)}) - ${pbf_debit.toFixed(2)} = ${((K2 - K1) - pbf_debit).toFixed(2)}`; bR = `${(K1 + pbf_debit).toFixed(2)} / ${(K3 - pbf_debit).toFixed(2)}`; bF = `計算過程：L:K1+Net | H:K3-Net`; sDiff = (K2 - K1).toFixed(2); sdF = `計算過程：單側翼展 ${K2.toFixed(2)} - ${K1.toFixed(2)} = ${sDiff}`; 
+            net = - (P1 + P3 - 2 * P2); const pbf_debit = P1 + P3 - 2 * P2; nF = `計算過程：- (${P1.toFixed(2)} + ${P3.toFixed(2)} - 2 * ${P2.toFixed(2)}) = - ${pbf_debit.toFixed(2)}`; dispML = `${pbf_debit.toFixed(2)} (當股價在 ${K1.toFixed(2)} 之下或 ${K3.toFixed(2)} 之上)`; mLF = `計算過程：淨支出 = 最大損失`; dispMP = `${((K2 - K1) - pbf_debit).toFixed(2)} (當股價等於 ${K2.toFixed(2)})`; mPF = `計算過程：單側翼展 - 淨支出 = ${expandSubtract(K2, K1, pbf_debit)}`; bR = `${(K1 + pbf_debit).toFixed(2)} / ${(K3 - pbf_debit).toFixed(2)}`; bF = `計算過程：L:K1+Net | H:K3-Net`; sDiff = (K2 - K1).toFixed(2); sdF = `計算過程：單側翼展 ${K2.toFixed(2)} - ${K1.toFixed(2)} = ${sDiff}`; 
             const pbfp1 = parseFloat((vLP1 - P1).toFixed(2)); const pbfp2 = parseFloat((2 * (P2 - vSP2)).toFixed(2)); const pbfp3 = parseFloat((vLP3 - P3).toFixed(2));
             cPF = `計算過程：(Max(0, K1 - S0) - P1) + 2 * (P2 - Max(0, K2 - S0)) + (Max(0, K3 - S0) - P3) = (${vLP1.toFixed(2)} - ${P1.toFixed(2)}) + 2 * (${P2.toFixed(2)} - ${vSP2.toFixed(2)}) + (${vLP3.toFixed(2)} - ${P3.toFixed(2)}) = ${pbfp1.toFixed(2)} ${formatSignedNum(pbfp2)} ${formatSignedNum(pbfp3)} = ${cPV.toFixed(2)}`; break;
         case 'JadeLizard':
@@ -756,6 +759,133 @@ function applySmartAdjust() {
     analyzeSpread();
 }
 
+
+function expandAnalysisFormulas(strategy, params, analysis) {
+    const { K1, K2, K3, K4, P1, P2, P3, P4, S0 } = params;
+    const f = (value) => Number(value || 0).toFixed(2);
+    const add = (...values) => values.map(f).join(' + ') + ' = ' + f(values.reduce((total, value) => total + Number(value || 0), 0));
+    const subtract = (a, b) => f(a) + ' - ' + f(b) + ' = ' + f(a - b);
+    const multiply = (a, b) => f(a) + ' × ' + f(b) + ' = ' + f(a * b);
+    const maxZero = (value) => 'Max(0, ' + f(value) + ') = ' + f(Math.max(0, value));
+    const longPut = (K, P) => { const intrinsic = Math.max(0, K - S0); const value = intrinsic - P; return { value, text: 'Long Put：Max(0, ' + f(K) + ' - ' + f(S0) + ') = ' + maxZero(K - S0) + '；' + f(intrinsic) + ' - ' + f(P) + ' = ' + f(value) }; };
+    const shortPut = (K, P) => { const intrinsic = Math.max(0, K - S0); const value = P - intrinsic; return { value, text: 'Short Put：Max(0, ' + f(K) + ' - ' + f(S0) + ') = ' + maxZero(K - S0) + '；' + f(P) + ' - ' + f(intrinsic) + ' = ' + f(value) }; };
+    const longCall = (K, P) => { const intrinsic = Math.max(0, S0 - K); const value = intrinsic - P; return { value, text: 'Long Call：Max(0, ' + f(S0) + ' - ' + f(K) + ') = ' + maxZero(S0 - K) + '；' + f(intrinsic) + ' - ' + f(P) + ' = ' + f(value) }; };
+    const shortCall = (K, P) => { const intrinsic = Math.max(0, S0 - K); const value = P - intrinsic; return { value, text: 'Short Call：Max(0, ' + f(S0) + ' - ' + f(K) + ') = ' + maxZero(S0 - K) + '；' + f(P) + ' - ' + f(intrinsic) + ' = ' + f(value) }; };
+    const total = (legs) => '各腳：' + legs.map(leg => leg.text).join('；') + '；合計：' + legs.map(leg => f(leg.value)).join(' + ') + ' = ' + f(legs.reduce((sum, leg) => sum + leg.value, 0));
+    const withTwo = (leg) => ({ value: 2 * leg.value, text: '2 × (' + leg.text + ')；2 × ' + f(leg.value) + ' = ' + f(2 * leg.value) });
+    const result = { ...analysis };
+    let legs, credit, debit, leftWing, rightWing, putWing, callWing, chosenWing, lower, upper, lossAtZero;
+
+    switch (strategy) {
+        case 'ShortPut':
+            result.netPremiumFormula = '收入 P1 = ' + f(P1);
+            result.maxProfitFormula = '最大獲利 = 收入 P1 = ' + f(P1);
+            lossAtZero = K1 - P1;
+            result.maxLossFormula = 'S = 0：' + subtract(K1, P1) + '；最大損失 = ' + f(Math.max(0, lossAtZero));
+            result.bepFormula = '損益平衡點：' + subtract(K1, P1);
+            result.sDiffFormula = '單腿策略，無履約價差。';
+            legs = [shortPut(K1, P1)]; result.currentPLFormula = total(legs); break;
+        case 'BullPutSpread':
+            credit = P2 - P1; leftWing = K2 - K1;
+            result.netPremiumFormula = '淨收入：' + subtract(P2, P1);
+            result.maxProfitFormula = '最大獲利來源：Short Put 收入 P2 - Long Put 成本 P1 = ' + subtract(P2, P1) + '；因此最大獲利 = ' + f(credit);
+            result.maxLossFormula = '履約價差：' + subtract(K2, K1) + '；最大損失：' + f(leftWing) + ' - ' + f(credit) + ' = ' + f(leftWing - credit);
+            result.bepFormula = '損益平衡點：' + subtract(K2, credit);
+            result.sDiffFormula = '履約價差：' + subtract(K2, K1);
+            legs = [longPut(K1, P1), shortPut(K2, P2)]; result.currentPLFormula = total(legs); break;
+        case 'BullCallSpread':
+            debit = P1 - P2; leftWing = K2 - K1;
+            result.netPremiumFormula = '先算淨支出：' + subtract(P1, P2) + '；淨收支：-(' + f(debit) + ') = ' + f(-debit);
+            result.maxProfitFormula = '履約價差：' + subtract(K2, K1) + '；最大獲利：' + f(leftWing) + ' - ' + f(debit) + ' = ' + f(leftWing - debit);
+            result.maxLossFormula = '最大損失等於建倉淨支出：Long Call 成本 P1 - Short Call 收入 P2 = ' + subtract(P1, P2) + '；因此最大損失 = ' + f(debit);
+            result.bepFormula = '損益平衡點：' + add(K1, debit);
+            result.sDiffFormula = '履約價差：' + subtract(K2, K1);
+            legs = [longCall(K1, P1), shortCall(K2, P2)]; result.currentPLFormula = total(legs); break;
+        case 'BearCallSpread':
+            credit = P1 - P2; leftWing = K2 - K1;
+            result.netPremiumFormula = '淨收入：' + subtract(P1, P2);
+            result.maxProfitFormula = '最大獲利來源：Short Call 收入 P1 - Long Call 成本 P2 = ' + subtract(P1, P2) + '；因此最大獲利 = ' + f(credit);
+            result.maxLossFormula = '履約價差：' + subtract(K2, K1) + '；最大損失：' + f(leftWing) + ' - ' + f(credit) + ' = ' + f(leftWing - credit);
+            result.bepFormula = '損益平衡點：' + add(K1, credit);
+            result.sDiffFormula = '履約價差：' + subtract(K2, K1);
+            legs = [shortCall(K1, P1), longCall(K2, P2)]; result.currentPLFormula = total(legs); break;
+        case 'BearPutSpread':
+            debit = P2 - P1; leftWing = K2 - K1;
+            result.netPremiumFormula = '先算淨支出：' + subtract(P2, P1) + '；淨收支：-(' + f(debit) + ') = ' + f(-debit);
+            result.maxProfitFormula = '履約價差：' + subtract(K2, K1) + '；最大獲利：' + f(leftWing) + ' - ' + f(debit) + ' = ' + f(leftWing - debit);
+            result.maxLossFormula = '最大損失等於建倉淨支出：Long Put 成本 P2 - Short Put 收入 P1 = ' + subtract(P2, P1) + '；因此最大損失 = ' + f(debit);
+            result.bepFormula = '損益平衡點：' + subtract(K2, debit);
+            result.sDiffFormula = '履約價差：' + subtract(K2, K1);
+            legs = [shortPut(K1, P1), longPut(K2, P2)]; result.currentPLFormula = total(legs); break;
+        case 'IronCondor':
+            putWing = K2 - K1; callWing = K4 - K3; credit = (P2 - P1) + (P3 - P4); chosenWing = Math.max(putWing, callWing);
+            result.netPremiumFormula = 'Put 收入：' + subtract(P2, P1) + '；Call 收入：' + subtract(P3, P4) + '；淨收入：' + add(P2 - P1, P3 - P4);
+            result.maxProfitFormula = '最大獲利來源：Put Spread 收入 ' + f(P2 - P1) + ' + Call Spread 收入 ' + f(P3 - P4) + ' = ' + f(credit) + '；因此最大獲利 = ' + f(credit);
+            result.maxLossFormula = 'Put 翼展：' + subtract(K2, K1) + '；Call 翼展：' + subtract(K4, K3) + '；較寬翼展 Max(' + f(putWing) + ', ' + f(callWing) + ') = ' + f(chosenWing) + '；最大損失：' + subtract(chosenWing, credit);
+            lower = K2 - credit; upper = K3 + credit;
+            result.bepFormula = 'Put 端：' + subtract(K2, credit) + '；Call 端：' + add(K3, credit);
+            result.sDiffFormula = 'Put 翼展：' + subtract(K2, K1) + '；Call 翼展：' + subtract(K4, K3);
+            legs = [longPut(K1, P1), shortPut(K2, P2), shortCall(K3, P3), longCall(K4, P4)]; result.currentPLFormula = total(legs); break;
+        case 'Strangle':
+            credit = P1 + P2; lossAtZero = K1 - credit;
+            result.netPremiumFormula = '淨收入：' + add(P1, P2);
+            result.maxProfitFormula = '最大獲利來源：Short Put 收入 P1 + Short Call 收入 P2 = ' + add(P1, P2) + '；因此最大獲利 = ' + f(credit);
+            result.maxLossFormula = '上行最大損失無限（Short Call）；下行：' + subtract(K1, credit) + '；Max(0, ' + f(lossAtZero) + ') = ' + f(Math.max(0, lossAtZero));
+            result.bepFormula = 'Put 端：' + subtract(K1, credit) + '；Call 端：' + add(K2, credit);
+            result.sDiffFormula = '履約價間距：' + subtract(K2, K1);
+            legs = [shortPut(K1, P1), shortCall(K2, P2)]; result.currentPLFormula = total(legs); break;
+        case 'CallButterfly':
+            leftWing = K2 - K1; const callButterflyDouble = 2 * P2; debit = P1 + P3 - callButterflyDouble;
+            result.netPremiumFormula = '先算兩口 Short Call：' + multiply(2, P2) + '；買方權利金合計：' + add(P1, P3) + '；淨支出：' + subtract(P1 + P3, callButterflyDouble) + '；淨收支：-(' + f(debit) + ') = ' + f(-debit);
+            result.maxProfitFormula = '單側翼展：' + subtract(K2, K1) + '；最大獲利：' + subtract(leftWing, debit);
+            result.maxLossFormula = '最大損失等於建倉淨支出：Long Call 成本 P1 + Long Call 成本 P3 = ' + add(P1, P3) + '；兩口 Short Call 收入：' + multiply(2, P2) + '；淨支出：' + subtract(P1 + P3, callButterflyDouble) + '；因此最大損失 = ' + f(debit);
+            result.bepFormula = '低損益平衡點：' + add(K1, debit) + '；高損益平衡點：' + subtract(K3, debit);
+            result.sDiffFormula = '左翼：' + subtract(K2, K1) + '；右翼：' + subtract(K3, K2);
+            legs = [longCall(K1, P1), withTwo(shortCall(K2, P2)), longCall(K3, P3)]; result.currentPLFormula = total(legs); break;
+        case 'PutButterfly':
+            leftWing = K2 - K1; const putButterflyDouble = 2 * P2; debit = P1 + P3 - putButterflyDouble;
+            result.netPremiumFormula = '先算兩口 Short Put：' + multiply(2, P2) + '；買方權利金合計：' + add(P1, P3) + '；淨支出：' + subtract(P1 + P3, putButterflyDouble) + '；淨收支：-(' + f(debit) + ') = ' + f(-debit);
+            result.maxProfitFormula = '單側翼展：' + subtract(K2, K1) + '；最大獲利：' + subtract(leftWing, debit);
+            result.maxLossFormula = '最大損失等於建倉淨支出：Long Put 成本 P1 + Long Put 成本 P3 = ' + add(P1, P3) + '；兩口 Short Put 收入：' + multiply(2, P2) + '；淨支出：' + subtract(P1 + P3, putButterflyDouble) + '；因此最大損失 = ' + f(debit);
+            result.bepFormula = '低損益平衡點：' + add(K1, debit) + '；高損益平衡點：' + subtract(K3, debit);
+            result.sDiffFormula = '左翼：' + subtract(K2, K1) + '；右翼：' + subtract(K3, K2);
+            legs = [longPut(K1, P1), withTwo(shortPut(K2, P2)), longPut(K3, P3)]; result.currentPLFormula = total(legs); break;
+        case 'JadeLizard':
+            const callCredit = P2 - P3; credit = P1 + callCredit; lossAtZero = K1 - credit;
+            result.netPremiumFormula = 'Call Spread 收入：' + subtract(P2, P3) + '；總淨收入：' + add(P1, callCredit);
+            result.maxProfitFormula = '最大獲利來源：Short Put 收入 P1 + Call Spread 收入 (P2 - P3) = ' + f(P1) + ' + ' + f(callCredit) + ' = ' + f(credit) + '；因此最大獲利 = ' + f(credit);
+            result.maxLossFormula = 'S = 0 時下行：' + subtract(K1, credit) + '；Max(0, ' + f(lossAtZero) + ') = ' + f(Math.max(0, lossAtZero)) + '（上行風險由 Call Spread 與淨收入抵銷）';
+            result.bepFormula = '損益平衡點：' + subtract(K1, credit);
+            result.sDiffFormula = 'Call 翼展：' + subtract(K3, K2);
+            legs = [shortPut(K1, P1), shortCall(K2, P2), longCall(K3, P3)]; result.currentPLFormula = total(legs); break;
+        case 'PutRatioSpreadBull':
+            const ratioDouble = 2 * P2; credit = ratioDouble - P1; leftWing = K1 - K2; lossAtZero = K1 - 2 * K2 + credit;
+            result.netPremiumFormula = '先算兩口 Short Put：' + multiply(2, P2) + '；淨收入：' + subtract(ratioDouble, P1);
+            result.maxProfitFormula = '履約價差：' + subtract(K1, K2) + '；最大獲利：' + add(leftWing, credit);
+            result.maxLossFormula = '兩口 Short Put 履約值：' + multiply(2, K2) + '；下行差額：' + subtract(2 * K2, K1) + '；扣除淨收入：' + subtract(2 * K2 - K1, credit) + '；最大損失 = ' + f(Math.max(0, -lossAtZero));
+            result.bepFormula = '下方損益平衡點：' + subtract(2 * K2 - K1, credit);
+            result.sDiffFormula = '履約價差：' + subtract(K1, K2);
+            legs = [longPut(K1, P1), withTwo(shortPut(K2, P2))]; result.currentPLFormula = total(legs); break;
+        case 'PutBWBBull':
+            const putBwbDouble = 2 * P2; credit = putBwbDouble - P1 - P3; leftWing = K2 - K1; rightWing = K3 - K2;
+            result.netPremiumFormula = '先算兩口 Short Put：' + multiply(2, P2) + '；扣 Long Put K1：' + subtract(putBwbDouble, P1) + '；淨收入：' + subtract(putBwbDouble - P1, P3);
+            result.maxProfitFormula = '右翼：' + subtract(K3, K2) + '；最大獲利：' + add(rightWing, credit);
+            result.maxLossFormula = '左翼：' + subtract(K2, K1) + '；右翼：' + subtract(K3, K2) + '；翼展差：' + subtract(leftWing, rightWing) + '；最大損失：' + subtract(leftWing - rightWing, credit);
+            result.bepFormula = '損益平衡點：' + subtract(K2, rightWing + credit);
+            result.sDiffFormula = '左翼：' + subtract(K2, K1) + '；右翼：' + subtract(K3, K2);
+            legs = [longPut(K1, P1), withTwo(shortPut(K2, P2)), longPut(K3, P3)]; result.currentPLFormula = total(legs); break;
+        case 'CallBWBBear':
+            const callBwbDouble = 2 * P2; credit = callBwbDouble - P1 - P3; leftWing = K2 - K1; rightWing = K3 - K2;
+            result.netPremiumFormula = '先算兩口 Short Call：' + multiply(2, P2) + '；扣 Long Call K1：' + subtract(callBwbDouble, P1) + '；淨收入：' + subtract(callBwbDouble - P1, P3);
+            result.maxProfitFormula = '左翼：' + subtract(K2, K1) + '；最大獲利：' + add(leftWing, credit);
+            result.maxLossFormula = '右翼：' + subtract(K3, K2) + '；左翼：' + subtract(K2, K1) + '；翼展差：' + subtract(rightWing, leftWing) + '；最大損失：' + subtract(rightWing - leftWing, credit);
+            result.bepFormula = '損益平衡點：' + add(K2, leftWing + credit);
+            result.sDiffFormula = '左翼：' + subtract(K2, K1) + '；右翼：' + subtract(K3, K2);
+            legs = [longCall(K1, P1), withTwo(shortCall(K2, P2)), longCall(K3, P3)]; result.currentPLFormula = total(legs); break;
+    }
+    return result;
+}
+
 function analyzeSpread() {
     const strategy = document.getElementById('strategySelector').value;
     const S0 = parseFloat(document.getElementById('S0')?.value) || 0; 
@@ -767,7 +897,7 @@ function analyzeSpread() {
 
     strategyConfigs[strategy].legs.forEach(leg => { const el = document.getElementById(leg.id); if(el) params[leg.id] = parseFloat(el.value) || 0; });
     
-    currentAnalysis = calculatePLData(strategy, params);
+    currentAnalysis = expandAnalysisFormulas(strategy, params, calculatePLData(strategy, params));
     
     const setT = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
     setT('netPremiumDisplay', `${currentAnalysis.netPremium.toFixed(2)}`);
@@ -816,7 +946,8 @@ function analyzeSpread() {
         const closestBEP = validBeps.reduce((prev, curr) => Math.abs(curr - S0) < Math.abs(prev - S0) ? curr : prev);
         const distancePercent = (Math.abs(closestBEP - S0) / S0) * 100;
         setT('marginOfSafetyValue', `${distancePercent.toFixed(2)}% (最近 BEP: ${closestBEP})`);
-        setT('marginOfSafetyFormulaDisplay', `計算過程：|最近 BEP - S0| ÷ S0 = |${closestBEP} - ${S0.toFixed(2)}| ÷ ${S0.toFixed(2)} = ${distancePercent.toFixed(2)}%`);
+        const marginGap = Math.abs(closestBEP - S0);
+        setT('marginOfSafetyFormulaDisplay', `計算過程：最近 BEP - S0 = ${closestBEP} - ${S0.toFixed(2)} = ${(closestBEP - S0).toFixed(2)}；|${(closestBEP - S0).toFixed(2)}| = ${marginGap.toFixed(2)}；${marginGap.toFixed(2)} ÷ ${S0.toFixed(2)} = ${distancePercent.toFixed(2)}%`);
     } else {
         setT('marginOfSafetyValue', `—`);
         setT('marginOfSafetyFormulaDisplay', `—`);
@@ -827,7 +958,10 @@ function analyzeSpread() {
         const lower = S0 - em;
         const upper = S0 + em;
         setT('expectedMoveValue', `±$${em.toFixed(2)} (${lower.toFixed(2)} ~ ${upper.toFixed(2)})`);
-        setT('expectedMoveFormulaDisplay', `計算過程：S0 × IV% × √(DTE ÷ 365) = ${S0.toFixed(2)} × ${IV}% × √(${DTE} ÷ 365) = ${em.toFixed(2)}`);
+        const ivDecimal = IV / 100;
+        const yearFraction = DTE / 365;
+        const timeRoot = Math.sqrt(yearFraction);
+        setT('expectedMoveFormulaDisplay', `計算過程：IV% = ${IV} ÷ 100 = ${ivDecimal.toFixed(4)}；DTE ÷ 365 = ${DTE} ÷ 365 = ${yearFraction.toFixed(4)}；√${yearFraction.toFixed(4)} = ${timeRoot.toFixed(4)}；${S0.toFixed(2)} × ${ivDecimal.toFixed(4)} × ${timeRoot.toFixed(4)} = ${em.toFixed(2)}`);
     } else {
         setT('expectedMoveValue', `—`);
         setT('expectedMoveFormulaDisplay', `—`);
