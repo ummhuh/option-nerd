@@ -360,151 +360,21 @@ function calculatePLData(strategy, params) {
 }
 
 function generateLogicParams(strategy, S0, IV, DTE) {
-    const p = {}; let safetyCheck = false;
-    p.IV = IV; p.DTE = DTE; 
-    let em = S0 * (IV / 100) * Math.sqrt(DTE / 365);
-    // 與分析區共用同一個 1 SD 公式；不再另設最小波動地板，以避免兩處數值不一致。
-
-    const w1 = S0 * 0.02; 
-    const w2 = S0 * 0.05; 
-    const pBase = S0 * 0.01; 
-    
-    while (!safetyCheck) {
-        switch (strategy) {
-            case 'ShortPut': 
-                p.K1 = roundK(S0 - em - rand(0, w1)); p.P1 = roundK(rand(pBase*0.5, pBase*2)); 
-                break;
-            case 'BullPutSpread': 
-                p.K2 = roundK(S0 - em*0.5 - rand(0, w1)); p.K1 = roundK(p.K2 - rand(w2*0.5, w2*1.5)); 
-                p.P2 = roundK(rand(pBase*1.5, pBase*3)); p.P1 = roundK(rand(pBase*0.2, p.P2 - pBase*0.2)); 
-                break;
-            case 'BullCallSpread': 
-                p.K1 = roundK(S0 + rand(0, w1)); p.K2 = roundK(p.K1 + rand(w2*0.5, w2*1.5)); 
-                p.P1 = roundK(rand(pBase*2, pBase*4)); p.P2 = roundK(rand(pBase*0.5, p.P1 - pBase*0.5)); 
-                break;
-            case 'BearCallSpread': 
-                p.K1 = roundK(S0 + em*0.5 + rand(0, w1)); p.K2 = roundK(p.K1 + rand(w2*0.5, w2*1.5)); 
-                p.P1 = roundK(rand(pBase*1.5, pBase*3)); p.P2 = roundK(rand(pBase*0.2, p.P1 - pBase*0.2)); 
-                break;
-            case 'BearPutSpread': 
-                p.K2 = roundK(S0 - rand(0, w1)); p.K1 = roundK(p.K2 - rand(w2*0.5, w2*1.5)); 
-                p.P2 = roundK(rand(pBase*2, pBase*4)); p.P1 = roundK(rand(pBase*0.5, p.P2 - pBase*0.5)); 
-                break;
-            case 'PutRatioSpreadBull': 
-                p.K1 = roundK(S0 * rand(0.94, 0.98)); 
-                let maxSpread = p.K1 * 0.25; 
-                let spreadW = roundK(Math.max(S0*0.01, Math.min(rand(w1, em), maxSpread))); 
-                p.K2 = roundK(p.K1 - spreadW); 
-                
-                p.P1 = roundK(spreadW * rand(0.3, 0.6)); 
-                let minP2_prs = (p.P1 / 2) + 0.05; 
-                let maxP2_prs = Math.min(p.P1 - 0.05, (spreadW + p.P1) / 2 - 0.05); 
-                
-                if (minP2_prs >= maxP2_prs) {
-                    minP2_prs = p.P1 * 0.55;
-                    maxP2_prs = p.P1 * 0.90;
-                }
-                p.P2 = roundK(rand(minP2_prs, maxP2_prs)); 
-                break;
-            case 'PutBWBBull': 
-                p.K3 = roundK(S0 - rand(w1*0.5, w1*1.5)); 
-                let wR_pbwb = rand(w2*0.5, w2*1.5); p.K2 = roundK(p.K3 - wR_pbwb);
-                let wL_pbwb = wR_pbwb + rand(w2*0.5, w2*1.5); p.K1 = roundK(p.K2 - wL_pbwb);
-                p.P3 = roundK(rand(pBase*2, pBase*4));
-                p.P1 = roundK(rand(pBase*0.2, p.P3 - pBase*1.0));
-                let minP2_pbwb = (p.P1 + p.P3) / 2 + 0.05;
-                let maxP2_pbwb = Math.min(p.P3 - 0.05, ((p.K2 - p.K1) - (p.K3 - p.K2) + p.P1 + p.P3) / 2 - 0.05);
-                if(minP2_pbwb >= maxP2_pbwb) { 
-                    p.K1 -= w2; 
-                    maxP2_pbwb = Math.min(p.P3 - 0.05, ((p.K2 - p.K1) - (p.K3 - p.K2) + p.P1 + p.P3) / 2 - 0.05); 
-                }
-                p.P2 = roundK(rand(minP2_pbwb, maxP2_pbwb));
-                break;
-            case 'CallBWBBear': 
-                p.K1 = roundK(S0 + rand(w1*0.5, w1*1.5)); 
-                let wL_cbwb = rand(w2*0.5, w2*1.5); p.K2 = roundK(p.K1 + wL_cbwb);
-                let wR_cbwb = wL_cbwb + rand(w2*0.5, w2*1.5); p.K3 = roundK(p.K2 + wR_cbwb);
-                p.P1 = roundK(rand(pBase*2, pBase*4));
-                p.P3 = roundK(rand(pBase*0.2, p.P1 - pBase*1.0));
-                let minP2_cbwb = (p.P1 + p.P3) / 2 + 0.05;
-                let maxP2_cbwb = Math.min(p.P1 - 0.05, ((p.K3 - p.K2) - (p.K2 - p.K1) + p.P1 + p.P3) / 2 - 0.05);
-                if(minP2_cbwb >= maxP2_cbwb) { 
-                    p.K3 += w2; 
-                    maxP2_cbwb = Math.min(p.P1 - 0.05, ((p.K3 - p.K2) - (p.K2 - p.K1) + p.P1 + p.P3) / 2 - 0.05); 
-                }
-                p.P2 = roundK(rand(minP2_cbwb, maxP2_cbwb));
-                break;
-            case 'IronCondor': 
-                p.K2 = roundK(S0 - em - rand(w1*0.5, w1*1.5)); p.K1 = roundK(p.K2 - rand(w2*0.5, w2*1.5)); 
-                p.K3 = roundK(S0 + em + rand(w1*0.5, w1*1.5)); p.K4 = roundK(p.K3 + rand(w2*0.5, w2*1.5)); 
-                p.P2 = roundK(rand(pBase*1.5, pBase*2.5)); p.P1 = roundK(rand(pBase*0.2, p.P2 - pBase*0.5)); 
-                p.P3 = roundK(rand(pBase*1.5, pBase*2.5)); p.P4 = roundK(rand(pBase*0.2, p.P3 - pBase*0.5)); 
-                if ((p.P2 - p.P1 + p.P3 - p.P4) >= Math.max(p.K2-p.K1, p.K4-p.K3)) {
-                    p.K1 -= w2; p.K4 += w2;
-                }
-                break;
-            case 'CallButterfly': 
-                const wCB = roundK(rand(w2, w2*2)); 
-                p.K2 = roundK(S0 + rand(-w1*0.5, w1*0.5)); 
-                p.K1 = roundK(p.K2 - wCB); p.K3 = roundK(p.K2 + wCB); 
-                p.P1 = roundK(rand(pBase*3, pBase*5)); 
-                p.P2 = roundK(rand(pBase*1, p.P1/2 - pBase*0.1)); 
-                p.P3 = roundK(rand(0.05, p.P1 - 2*p.P2 - 0.05)); 
-                break;
-            case 'PutButterfly':
-                const wPB = roundK(rand(w2, w2*2)); 
-                p.K2 = roundK(S0 + rand(-w1*0.5, w1*0.5)); 
-                p.K1 = roundK(p.K2 - wPB); p.K3 = roundK(p.K2 + wPB); 
-                p.P3 = roundK(rand(pBase*3, pBase*5)); 
-                p.P2 = roundK(rand(pBase*1, p.P3/2 - pBase*0.1)); 
-                p.P1 = roundK(rand(0.05, p.P3 - 2*p.P2 - 0.05)); 
-                break;
-            case 'JadeLizard': 
-                p.K1 = roundK(S0 - em - rand(w2*0.5, w2*1.5)); 
-                p.K2 = roundK(S0 + em + rand(0, w1)); 
-                p.K3 = roundK(p.K2 + rand(w2*0.8, w2*2)); 
-                p.P2 = roundK(rand(pBase*2, pBase*4)); p.P3 = roundK(rand(pBase*0.5, p.P2 - pBase*0.5)); 
-                let jl_minP1 = Math.max(pBase*0.5, (p.K3 - p.K2) - (p.P2 - p.P3) + 0.1);
-                p.P1 = roundK(rand(jl_minP1, jl_minP1 + pBase*2));
-                break;
-            case 'Strangle': 
-                p.K1 = roundK(S0 - em - rand(w2*0.5, w2*2)); p.K2 = roundK(S0 + em + rand(w2*0.5, w2*2)); 
-                p.P1 = roundK(rand(pBase*1.5, pBase*3.5)); p.P2 = roundK(rand(pBase*1.5, pBase*3.5)); 
-                break;
-            default: p.K1 = S0-5; p.K2 = S0+5; p.P1 = 2; p.P2 = 2;
-        }
-
-        let validSpread = true;
-        if (strategy.includes('Spread') && !strategy.includes('BWB')) { 
-            validSpread = (Math.abs(p.P1-p.P2) < Math.abs(p.K1-p.K2));
-        }
-        let positiveStrikes = Object.keys(p).every(k => !k.startsWith('K') || p[k] > 0);
-        if (validSpread && positiveStrikes) { safetyCheck = true; }
-    }
-    
-    if (strategy === 'JadeLizard' && p.K1 - (p.P1 + p.P2 - p.P3) <= 0) p.K1 = roundK(p.P1 + p.P2 - p.P3 + S0*0.1);
-    if (strategy === 'Strangle' && p.K1 - (p.P1 + p.P2) <= 0) p.K1 = roundK(p.P1 + p.P2 + S0*0.1);
-    if (strategy === 'ShortPut' && p.K1 - p.P1 <= 0) p.K1 = roundK(p.P1 + S0*0.1);
-
-    for (let k in p) { 
-        if (k !== 'DTE' && k !== 'IV') p[k] = parseFloat(p[k].toFixed(2)); 
-    }
-
+    // 隨機模式與手動智能修復共用同一組策略模板；差別只在環境參數 S0 / IV / DTE 的來源。
+    const p = buildSmartFixParams(strategy, S0, IV, DTE);
+    const em = S0 * (IV / 100) * Math.sqrt(DTE / 365);
     const lower1SD = S0 - em;
     const upper1SD = S0 + em;
-
-    let logicText = `系統產生了 S0 = $${S0.toFixed(2)}, IV = ${IV.toFixed(2)}%, DTE = ${DTE} 天 的環境，算出的 1 SD 波動區間為 ±$${em.toFixed(2)} ($${lower1SD.toFixed(2)} ~ $${upper1SD.toFixed(2)})。<br>`;
-    if(strategy.includes('ShortPut') || strategy.includes('IronCondor') || strategy.includes('Strangle') || strategy.includes('BearCallSpread') || strategy.includes('BullPutSpread') || strategy.includes('JadeLizard')) {
-        logicText += `🧪 模擬練習資料：本工具隨機產生的權利金並非即時市場報價；履約價配置僅作教學示範，不保證勝率或實際市場可成交性。`;
+    let logicText = '系統產生了 S0 = $' + S0.toFixed(2) + ', IV = ' + IV.toFixed(2) + '%, DTE = ' + DTE + ' 天 的環境，算出的 1 SD 波動區間為 ±$' + em.toFixed(2) + ' ($' + lower1SD.toFixed(2) + ' ~ $' + upper1SD.toFixed(2) + ')。<br>';
+    if (strategy.includes('ShortPut') || strategy.includes('IronCondor') || strategy.includes('Strangle') || strategy.includes('BearCallSpread') || strategy.includes('BullPutSpread') || strategy.includes('JadeLizard')) {
+        logicText += '🧪 模擬練習資料：此策略的隨機模式與智能修復共用相同模板；權利金並非即時市場報價，不保證實際市場可成交性。';
     } else if (strategy.includes('BullCallSpread') || strategy.includes('BearPutSpread')) {
-        logicText += `🧪 模擬練習資料：此為買方方向策略的示範配置；權利金並非即時市場報價，1 SD 區間只作理解市場預期波動的參考。`;
+        logicText += '🧪 模擬練習資料：此買方方向策略在兩種模式共用相同示範模板；1 SD 區間只作理解市場預期波動的參考。';
     } else {
-        logicText += `🧪 模擬練習資料：系統依波動率配置參數，權利金並非即時市場報價；請用它理解到期損益形狀，而非推估實際成交條件。`;
+        logicText += '🧪 模擬練習資料：兩種模式共用相同策略模板與損益結構；請用它理解到期損益形狀，而非推估實際成交條件。';
     }
-
     return { params: p, logicText: logicText };
 }
-
 function handleChartRefresh() {
     const m = document.getElementById('priceMode').value;
     if (m === 'random') {
@@ -514,7 +384,7 @@ function handleChartRefresh() {
         const IV = parseFloat(document.getElementById('IV').value) || 0;
         const DTE = parseFloat(document.getElementById('DTE').value) || 0;
         if (S0 > 0 && IV > 0 && DTE > 0) {
-            applySmartAdjust();
+            applySmartAdjust(true);
         } else {
             alert("請先輸入標的現價、IV 與到期天數！");
         }
@@ -543,6 +413,7 @@ function validateStrategyAndRenderCoach(analysis) {
     const em = (S0 > 0 && IV > 0 && DTE > 0) ? (S0 * (IV / 100) * Math.sqrt(DTE / 365)) : 0;
     const lower1SD = S0 - em;
     const upper1SD = S0 + em;
+    const minTradableStrike = Math.max(S0 * 0.01, 0.01);
 
     ['K1', 'K2', 'K3', 'K4'].forEach(k => {
         const val = getVal(k);
@@ -595,7 +466,7 @@ function validateStrategyAndRenderCoach(analysis) {
             if (P1 <= 0) addError(['P1'], `必須收取權利金 (P1 > 0)。`);
             if (K1 >= S0) warnings.push(`K1 在現價或價內；這在結構上仍是 Short Put，但不屬於本工具建議的保守 OTM 模板。`);
             if (K1 - netPremium <= 0) addError(['K1', 'P1'], `極端防護：您設定的權利金收得比履約價 K1 還多，導致下方出現無風險獲利狀態，請調高 K1 或減少 P1。`);
-            if (K1 > lower1SD) warnings.push(`賣出腳 (K1) 掉進 1 SD 暴風圈內，勝率堪憂。`);
+            if (lower1SD > minTradableStrike && K1 > lower1SD) warnings.push(`賣出腳 (K1) 掉進 1 SD 暴風圈內，勝率堪憂。`);
             break;
         case 'BullPutSpread':
             if (K1 >= K2) addError(['K1', 'K2'], `K1 (買入保險) 必須小於 K2 (賣出收租)。`);
@@ -603,7 +474,7 @@ function validateStrategyAndRenderCoach(analysis) {
             if (netPremium <= 0) addError(['P1', 'P2'], `收支錯誤：應為淨收入 (Credit)，請拓寬 K1 與 K2 價差。`);
             if (netPremium >= (K2 - K1)) addError(['P1', 'P2'], `真實市場防護：淨收入不得大於或等於履約價差，否則會產生無風險套利。`);
             if (K2 >= S0) warnings.push(`收租腳 (K2) 在現價或價內；結構仍可成立，但不屬於本工具建議的保守 OTM 模板。`);
-            if (K2 > lower1SD) warnings.push(`主要收租腳 (K2) 已掉入 1 SD 暴風圈內。`);
+            if (lower1SD > minTradableStrike && K2 > lower1SD) warnings.push(`主要收租腳 (K2) 已掉入 1 SD 暴風圈內。`);
             break;
         case 'BearCallSpread':
             if (K1 >= K2) addError(['K1', 'K2'], `K1 (賣出收租) 必須小於 K2 (買入保險)。`);
@@ -632,13 +503,13 @@ function validateStrategyAndRenderCoach(analysis) {
             if (P1 >= P2 || P4 >= P3) addError(['P1', 'P2', 'P3', 'P4'], `保險腳必須比收租腳便宜。`);
             if (netPremium <= 0) addError(['P1', 'P2', 'P3', 'P4'], `收支錯誤：應為淨收入 (Credit)。`);
             if (netPremium >= Math.max(K2-K1, K4-K3)) addError(['P1', 'P2', 'P3', 'P4'], `真實市場防護：淨收入不得大於或等於較寬翼展，否則整筆部位會出現無風險套利空間。`);
-            if (K2 > lower1SD || K3 < upper1SD) warnings.push(`鐵籠區間太窄，已包在 1 SD 暴風圈以內。`);
+            if ((lower1SD > minTradableStrike && K2 > lower1SD) || K3 < upper1SD) warnings.push(`鐵籠區間太窄，已包在 1 SD 暴風圈以內。`);
             break;
         case 'Strangle':
             if (!(K1 < S0 && S0 < K2)) addError(['K1', 'K2'], `賣出腳 (K1, K2) 必須分居現價 (S0) 兩側 (OTM)。`);
             if (P1 <= 0 || P2 <= 0) addError(['P1', 'P2'], `必須收取權利金。`);
             if (K1 - netPremium <= 0) warnings.push(`下行在 S=0 時仍為獲利；但短 Call 的上行損失仍然無限。`);
-            if (K1 > lower1SD || K2 < upper1SD) warnings.push(`雙向裸賣風險極高，您的部位太貼近現價 (1 SD 暴風圈內)。`);
+            if ((lower1SD > minTradableStrike && K1 > lower1SD) || K2 < upper1SD) warnings.push(`雙向裸賣風險極高，您的部位太貼近現價 (1 SD 暴風圈內)。`);
             break;
         case 'CallButterfly':
             if (!(K1 < K2 && K2 < K3)) addError(['K1', 'K2', 'K3'], `履約價順序錯誤：必須為 K1 < K2 < K3。`);
@@ -661,7 +532,7 @@ function validateStrategyAndRenderCoach(analysis) {
             if (P1 <= 0 || P2 <= P3) addError(['P1', 'P2', 'P3'], `權利金邏輯錯誤，請確保 P1 > 0 且 P2 > P3。`);
             if (netPremium < (K3 - K2)) addError(['P1', 'P2', 'P3', 'K2', 'K3'], `嚴重風險：總淨收入必須 ≥ (K3-K2) 寬度，否則上漲會虧損。`);
             if (K1 - netPremium <= 0) addError(['K1', 'P1', 'P2', 'P3'], `極端防護錯誤：您設定的 K1 過低或淨收入過高，導致下檔風險完全消失。這在真實市場中不合理，請提高 K1 或減少權利金。`);
-            if (K1 > lower1SD) warnings.push(`賣出 Put (K1) 防禦空間過小 (在 1 SD 內)。`);
+            if (lower1SD > minTradableStrike && K1 > lower1SD) warnings.push(`賣出 Put (K1) 防禦空間過小 (在 1 SD 內)。`);
             break;
         case 'PutRatioSpreadBull':
             if (K1 > S0) warnings.push(`K1 在現價之上；結構仍是 Put Ratio Spread，但與本工具示範模板不同。`);
@@ -674,7 +545,7 @@ function validateStrategyAndRenderCoach(analysis) {
             if (prs_lossAtZero >= 0) {
                 addError(['K1', 'K2'], `防護比例嚴重失衡：您的 K2 過低，導致下檔呈現無風險狀態。真實市場無法在這種懸殊比例下取得淨收入 (Credit)，請縮小 K1 與 K2 的價差！`);
             }
-            if (K2 > lower1SD) warnings.push(`您的主要賣出腳 (K2) 距離現價太近，下檔防禦不足。`);
+            if (lower1SD > minTradableStrike && K2 > lower1SD) warnings.push(`您的主要賣出腳 (K2) 距離現價太近，下檔防禦不足。`);
             break;
         case 'PutBWBBull':
             if (K3 > S0) warnings.push(`K3 在現價之上；結構仍是 Put BWB，但與本工具示範的價外模板不同。`);
@@ -683,7 +554,7 @@ function validateStrategyAndRenderCoach(analysis) {
             if (P1 >= P2 || P2 >= P3) addError(['P1', 'P2', 'P3'], `權利金應符合 P1 < P2 < P3。`);
             if (netPremium <= 0) addError(['P1', 'P2', 'P3'], `嚴重錯誤：必須為淨收入 (Credit) 才能確保上漲無風險。`);
             if (netPremium >= ((K2 - K1) - (K3 - K2))) addError(['P1', 'P2', 'P3'], `真實市場防護：淨收入不得大於最大可能虧損邊界 (${((K2 - K1) - (K3 - K2)).toFixed(2)})，否則產生無風險套利空間。`);
-            if (K2 > lower1SD) warnings.push(`您的主要賣出腳 (K2) 距離現價太近，下檔防禦不足。`);
+            if (lower1SD > minTradableStrike && K2 > lower1SD) warnings.push(`您的主要賣出腳 (K2) 距離現價太近，下檔防禦不足。`);
             break;
         case 'CallBWBBear':
             if (K1 < S0) warnings.push(`K1 在現價之下；結構仍是 Call BWB，但與本工具示範的價外模板不同。`);
@@ -739,26 +610,58 @@ function clearAllInputs() {
     analyzeSpread();
 }
 
-function applySmartAdjust() {
-    const s = document.getElementById('strategySelector').value;
+
+function buildSmartFixParams(strategy, S0, IV, DTE, useVariation = false) {
+    const em = S0 * (IV / 100) * Math.sqrt(DTE / 365);
+    const variation = useVariation ? (0.90 + Math.random() * 0.25) : 1;
+    const minStrike = Math.max(S0 * 0.01, 0.01);
+    const unit = Math.min(Math.max(S0 * 0.02, em * 0.35, 2), S0 * 0.15) * variation;
+    let wing = Math.min(Math.max(S0 * 0.04, em * 0.55, 4), S0 * 0.20) * variation;
+    const lower1SD = S0 - em;
+    if (lower1SD > minStrike) {
+        const safetyWing = (lower1SD - minStrike) * 0.70;
+        const safetyVariation = useVariation ? (0.80 + Math.random() * 0.15) : 1;
+        wing = Math.min(wing, safetyWing * safetyVariation);
+    }
+    const r = (value) => roundK(value);
+    const k = (value) => roundK(Math.max(minStrike, value));
+    const putSingle = Math.max(minStrike, S0 - em - unit);
+    const putSpread = Math.max(minStrike + wing, S0 - em - unit);
+    const p = { IV, DTE };
+    switch (strategy) {
+        case 'ShortPut': p.K1 = k(putSingle); p.P1 = r(Math.min(unit * 0.45, p.K1 * 0.1)); break;
+        case 'BullPutSpread': p.K2 = k(putSpread); p.K1 = k(p.K2 - wing); p.P2 = r(wing * 0.42); p.P1 = r(wing * 0.14); break;
+        case 'BullCallSpread': p.K1 = k(S0 + unit); p.K2 = k(p.K1 + wing); p.P1 = r(wing * 0.46); p.P2 = r(wing * 0.16); break;
+        case 'BearCallSpread': p.K1 = k(S0 + em + unit); p.K2 = k(p.K1 + wing); p.P1 = r(wing * 0.42); p.P2 = r(wing * 0.14); break;
+        case 'BearPutSpread': p.K2 = k(Math.max(minStrike + wing, S0 - unit)); p.K1 = k(p.K2 - wing); p.P2 = r(wing * 0.46); p.P1 = r(wing * 0.16); break;
+        case 'IronCondor': p.K2 = k(putSpread); p.K1 = k(p.K2 - wing); p.K3 = k(S0 + em + unit); p.K4 = k(p.K3 + wing); p.P2 = r(wing * 0.24); p.P1 = r(wing * 0.05); p.P3 = r(wing * 0.24); p.P4 = r(wing * 0.05); break;
+        case 'Strangle': p.K1 = k(putSingle); p.K2 = k(S0 + em + unit); p.P1 = r(unit * 0.35); p.P2 = r(unit * 0.35); break;
+        case 'CallButterfly': p.K2 = k(S0); p.K1 = k(p.K2 - wing); p.K3 = k(p.K2 + wing); p.P1 = r(wing * 0.46); p.P2 = r(wing * 0.16); p.P3 = r(wing * 0.06); break;
+        case 'PutButterfly': p.K2 = k(S0); p.K1 = k(p.K2 - wing); p.K3 = k(p.K2 + wing); p.P1 = r(wing * 0.06); p.P2 = r(wing * 0.16); p.P3 = r(wing * 0.46); break;
+        case 'JadeLizard': p.K1 = k(putSingle); p.K2 = k(S0 + em + unit); p.K3 = k(p.K2 + wing); p.P1 = r(wing * 0.38); p.P2 = r(wing * 0.82); p.P3 = r(wing * 0.12); break;
+        case 'PutRatioSpreadBull': { p.K1 = k(putSpread); const ratioGap = Math.min(wing * 0.35, p.K1 * 0.35); p.K2 = k(Math.max(minStrike, p.K1 - ratioGap)); p.P1 = r(wing * 0.42); p.P2 = r(wing * 0.26); break; }
+        case 'PutBWBBull': { const rightWing = wing * 0.35, leftWing = wing * 1.35; p.K2 = k(Math.max(minStrike + leftWing, Math.min(S0 - rightWing, S0 - em - unit))); p.K3 = k(p.K2 + rightWing); p.K1 = k(p.K2 - leftWing); p.P1 = r(rightWing * 0.10); p.P2 = r(rightWing * 0.40); p.P3 = r(rightWing * 0.50); break; }
+        case 'CallBWBBear': { const leftWing = wing * 0.35, rightWing = wing * 1.35; p.K2 = k(S0 + em + unit); p.K1 = k(p.K2 - leftWing); p.K3 = k(p.K2 + rightWing); p.P1 = r(leftWing * 0.50); p.P2 = r(leftWing * 0.40); p.P3 = r(leftWing * 0.10); break; }
+        default: return generateLogicParams(strategy, S0, IV, DTE).params;
+    }
+    return p;
+}
+
+function applySmartAdjust(useVariation = false) {
+    const strategy = document.getElementById('strategySelector').value;
     const S0 = parseFloat(document.getElementById('S0').value) || 100;
     const IV = parseFloat(document.getElementById('IV').value) || 20;
     const DTE = parseFloat(document.getElementById('DTE').value) || 30;
+    const smartParams = buildSmartFixParams(strategy, S0, IV, DTE, useVariation);
 
-    const generated = generateLogicParams(s, S0, IV, DTE);
-    const smartParams = generated.params;
-
-    Object.keys(smartParams).forEach(k => {
-        const el = document.getElementById(k);
-        if (el && k !== 'IV' && k !== 'DTE') {
-            el.value = smartParams[k].toFixed(2);
-        }
+    Object.keys(smartParams).forEach(key => {
+        const el = document.getElementById(key);
+        if (el && key !== 'IV' && key !== 'DTE') el.value = Number(smartParams[key]).toFixed(2);
     });
-    
+
     justSmartAdjusted = true;
     analyzeSpread();
 }
-
 
 function expandAnalysisFormulas(strategy, params, analysis) {
     const { K1, K2, K3, K4, P1, P2, P3, P4, S0 } = params;
@@ -1055,7 +958,7 @@ function analyzeSpread() {
                 <div class="smart-adjust-success">✅ 智能調整完畢！<br>已為您配置符合標準圖形且推移至安全邊界的實戰參數。<br><br>💡 ${strategyConfigs[strategy].adjustHint || "請觀察圖表與數值變化，請觀察其到期損益與風險；這不代表真實市場的保證報酬。"}</div>
                 <div class="action-buttons">
                     <button onclick="clearAllInputs()" class="clear-btn" style="flex: 1;">🧹 清除重置</button>
-                    <button onclick="applySmartAdjust()" class="smart-adjust-btn" style="flex: 1; background: linear-gradient(135deg, #17a2b8, #117a8b);">🎲 換一組參數</button>
+                    <button onclick="applySmartAdjust(true)" class="smart-adjust-btn" style="flex: 1; background: linear-gradient(135deg, #17a2b8, #117a8b);">🎲 換一組參數</button>
                 </div>`;
                 justSmartAdjusted = false;
             } else {
@@ -1063,7 +966,7 @@ function analyzeSpread() {
                 <div class="smart-adjust-success">✅ 教練檢測通過！<br>您的配置符合本工具的策略結構與防套利檢查；這不代表勝率或實際成交條件獲得保證。</div>
                 <div class="action-buttons">
                     <button onclick="clearAllInputs()" class="clear-btn" style="flex: 1;">🧹 清除重置</button>
-                    <button onclick="applySmartAdjust()" class="smart-adjust-btn" style="flex: 1; background: linear-gradient(135deg, #17a2b8, #117a8b);">🎲 換一組參數</button>
+                    <button onclick="applySmartAdjust(true)" class="smart-adjust-btn" style="flex: 1; background: linear-gradient(135deg, #17a2b8, #117a8b);">🎲 換一組參數</button>
                 </div>`;
             }
         }
